@@ -171,6 +171,9 @@ function updateXlsxBadge(ok){
         <button class="btn" id="btn-logout" title="退出当前账号">退出登录</button>
       
     <p class="muted helper" id="home-hint" style="margin:6px 0 10px">点击下方词库或选择单元，开始今天的学习吧。</p>
+    <div class="row" style="gap:10px;margin:6px 0 14px">
+      <button class="btn" id="btn-resume" style="display:none">继续背诵</button>
+    </div>
     <!-- Dashboard: Visual Motivation -->
     <div class="card" id="dashboard-card" style="margin-top:0">
       <div class="row" style="justify-content:space-between;align-items:center">
@@ -445,7 +448,10 @@ let currentDeck = null;
 let chosenUnits = null; // 选择练习的单元名数组，null=全库
 function persistDecks(){ saveLS("RU_DECKS", decks); }
 function renderDecks(){
-  try{ renderDashboard(); }catch(e){ /* ignore until elements exist */ }
+  try{ renderDashboard(); 
+  tryShowResume();
+}
+catch(e){ /* ignore until elements exist */ }
 
   const ul=$("#deck-list"); ul.innerHTML="";
   if(!decks.length){ ul.innerHTML="<li class='muted'>尚无词库，请先导入。</li>"; return; }
@@ -659,6 +665,8 @@ function advanceRoundOrFinish(){
 }
 
 function finishSession(){
+  clearResume();
+
   session.finishedAt = Date.now();
   persistHistory(session); // NEW: 保存历史
   $("#ru-word").textContent = "本次学习完成 ✅";
@@ -720,6 +728,8 @@ function checkAnswer(t){
   session.log.push({ts:Date.now(), round:ROUND_NAMES[session.round], ru:current.ru, zh:current.zh, unit:current.unit, pos:current.pos, chosen:t, correct:isCorrect, deck:(currentDeck.name||"词库")});
   session.idx += 1;
   updateProgress();
+
+  saveResume();
 }
 
 function goNext(){ if(!session) return; nextQuestion(false); }
@@ -1275,6 +1285,86 @@ window.addEventListener("resize", ()=>{ try{ renderDashboard(); }catch(e){} });
 
 restoreSession();
 attachLogout();
+
+/* === Resume Manager (继续背诵) === */
+const RESUME_KEY = "LINLU_RESUME_V1";
+function saveResume(){
+  try{
+    if(!session || !currentDeck) return;
+    const deckIndex = decks.indexOf(currentDeck);
+    if(deckIndex<0) return;
+    const state = {
+      deckIndex, deckId: currentDeck.id,
+      chosenUnits: (Array.isArray(chosenUnits)&&chosenUnits.length)? [...chosenUnits] : null,
+      round: session.round|0,
+      idx: session.idx|0,
+      queues: session.queues.map(q=> q.map(w=>({ru:w.ru, zh:w.zh}))),
+      startedAt: session.startedAt || Date.now()
+    };
+    saveLS(RESUME_KEY, state);
+    tryShowResume();
+  }catch(e){ /* silent */ }
+}
+function clearResume(){
+  try{ localStorage.removeItem(RESUME_KEY); }catch(e){}
+  tryShowResume();
+}
+function tryShowResume(){
+  const btn = $("#btn-resume"); if(!btn) return;
+  const st = loadLS(RESUME_KEY, null);
+  if(!st){ btn.style.display="none"; return; }
+  const di = decks.findIndex(d=> d.id===st.deckId);
+  if(di<0){ btn.style.display="none"; return; }
+  btn.style.display=""; 
+  btn.textContent = "继续背诵：" + (decks[di].name || "词库");
+  btn.onclick = ()=> resumePractice(st, di);
+}
+function resumePractice(st, deckIndex){
+  currentDeck = decks[deckIndex];
+  flatWords = flattenDeck(currentDeck).filter(w=>w.ru&&w.zh);
+  chosenUnits = (Array.isArray(st.chosenUnits)&&st.chosenUnits.length)? [...st.chosenUnits] : null;
+  session = {
+    round: Math.max(0, Math.min(2, st.round|0)),
+    queues: [[],[],[]],
+    idx: Math.max(0, st.idx|0),
+    totals: [0,0,0],
+    startedAt: st.startedAt || Date.now(),
+    finishedAt: null,
+    log: [],
+    perRound: [{total:0,correct:0,wrong:0},{total:0,correct:0,wrong:0},{total:0,correct:0,wrong:0}],
+    scopeLabel: (Array.isArray(chosenUnits)&&chosenUnits.length)? `（${chosenUnits.join("、")}）` : "（全库）"
+  };
+  function mapQueue(list){
+    const arr=[];
+    (list||[]).forEach(pair=>{
+      const w = flatWords.find(x=> x.ru===pair.ru && x.zh===pair.zh);
+      if(w) arr.push(w);
+    });
+    return arr;
+  }
+  session.queues[0] = mapQueue(st.queues?.[0]);
+  session.queues[1] = mapQueue(st.queues?.[1]);
+  session.queues[2] = mapQueue(st.queues?.[2]);
+  session.totals = [session.queues[0].length, session.queues[1].length, session.queues[2].length];
+  session.perRound[0].total = session.totals[0];
+  session.perRound[1].total = session.totals[1];
+  session.perRound[2].total = session.totals[2];
+
+  $("#view-main").classList.add("hidden");
+  $("#view-practice").classList.remove("hidden");
+  $("#practice-title").textContent=`${currentDeck.name||"词库"}｜三选一练习 ${session.scopeLabel}`;
+  updateProgress();
+  const q = session.queues[session.round];
+  if(q.length===0){ advanceRoundOrFinish(); return; }
+  if(session.idx>=q.length) session.idx = q.length-1;
+  current = q[session.idx];
+  renderCurrentQuestion();
+  // 立刻保存一次，确保恢复点有效
+  saveResume();
+}
+// 尝试在页面初始化和渲染后展示“继续背诵”按钮
+tryShowResume();
+
 </script>
 </body>
 </html>
