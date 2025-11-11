@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>学习页 | 林鹭俄语</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body data-page="study">
+    <header>
+      <div class="nav-container">
+        <a class="logo" href="index.html">林鹭俄语</a>
+        <nav class="nav-links">
+          <a href="study.html" data-page="study">学习</a>
+          <a href="mistakes.html" data-page="mistakes">错题</a>
+          <a href="profile.html" data-page="profile">我的</a>
+        </nav>
+        <a class="cta-link" href="profile.html">同步学习计划</a>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero fade-in">
+        <h1>挑一本词书，开启今天的俄语练习</h1>
+        <p id="studyTips">
+          这里会根据“我的”页设置自动显示建议节奏。还没设置？先去看看吧。
+        </p>
+      </section>
+
+      <section class="section-title fade-in" id="books">
+        <h2>词书列表</h2>
+        <p>选一本最合适的词书开始练习，也可以在下方上传自己的材料。</p>
+        <p id="bookStatus" class="subtle-text"></p>
+      </section>
+
+      <section class="card-grid books-grid" id="bookGrid"></section>
+
+      <section class="section-title fade-in" id="upload">
+        <h2>上传自定义词书</h2>
+        <p>
+          支持 pdf、doc/docx、xlsx 等常见格式。文件只会存储在你的浏览器本地，仅记录名称供管理。
+        </p>
+      </section>
+
+      <section class="upload-area fade-in">
+        <h3 style="margin:0 0 12px;">拖动文件到这里，或点击下方按钮选择文件</h3>
+        <p class="subtle-text">
+          建议使用 Excel 模板（列名：俄语、中文、提示），系统会自动识别并加入词书。
+        </p>
+        <label class="upload-cta" for="bookUpload">选择文件上传</label>
+        <input id="bookUpload" type="file" accept=".pdf,.doc,.docx,.xlsx" hidden />
+        <p class="upload-hint" id="uploadLabel">未选择文件</p>
+      </section>
+
+      <section class="section-title fade-in" id="practiceGuide">
+        <h2>如何开始背词？</h2>
+        <p>
+          点击词书卡片中的“进入背词练习”按钮，系统会跳转到全屏练习页，支持记忆模式与拼写模式切换。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <div>
+          <strong>林鹭俄语</strong>
+          <p class="subtle-text">© 2025 林鹭俄语 · 让俄语学习更容易。</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://mp.weixin.qq.com/s/J4_CNg9AZCIwPnyk2VGLYQ" target="_blank" rel="noopener noreferrer">官方公众号</a>
+          <a href="https://v.douyin.com/YleBclWDuhg/" target="_blank" rel="noopener noreferrer">官方抖音</a>
+          <a href="https://xhslink.com/m/6cTUMuTcujT" target="_blank" rel="noopener noreferrer">官方小红书</a>
+          <a href="#" class="contact-link">联系我们</a>
+        </div>
+        <div class="subtle-text">页脚同样支持轻盈的悬停效果，细节决定体验。</div>
+      </div>
+    </footer>
+
+    <button class="back-to-top" aria-label="返回顶部">↑</button>
+
+    <div class="book-modal" id="bookModal" aria-hidden="true">
+      <div class="book-modal__card">
+        <button class="book-modal__close" type="button">关闭</button>
+        <h3 id="bookModalTitle">词书详情</h3>
+        <p class="subtle-text" id="bookModalSummary"></p>
+        <div class="book-modal__chips" id="bookModalChips"></div>
+        <div class="book-modal__table-wrap">
+          <table class="book-modal__table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>俄语</th>
+                <th>中文释义</th>
+                <th>单元</th>
+                <th>提示</th>
+              </tr>
+            </thead>
+            <tbody id="bookModalTable"></tbody>
+          </table>
+        </div>
+        <p class="book-modal__hint" id="bookModalHint">最多展示前 100 个单词，完整内容将在背词练习中呈现。</p>
+      </div>
+    </div>
+
+    <div class="contact-modal" id="contactModal" aria-hidden="true">
+      <div class="contact-modal__card">
+        <button class="contact-modal__close" type="button">关闭</button>
+        <h3>林鹭俄语 · 学习小助手</h3>
+        <p class="subtle-text" style="margin-bottom:12px;">保存二维码至手机，再用微信扫一扫添加小助手好友。</p>
+        <img
+          class="contact-modal__qr"
+          src="assets/img/contact-wechat.svg"
+          alt="林鹭俄语微信小助手二维码"
+        />
+        <p class="contact-modal__hint">若二维码未显示，请将官方二维码覆盖为 <code>assets/img/contact-wechat.svg</code> 后刷新页面。</p>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/study.js"></script>
+  </body>
+</html>
+

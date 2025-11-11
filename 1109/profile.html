@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的计划 | 林鹭俄语</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body data-page="profile">
+    <header>
+      <div class="nav-container">
+        <a class="logo" href="index.html">林鹭俄语</a>
+        <nav class="nav-links">
+          <a href="study.html" data-page="study">学习</a>
+          <a href="mistakes.html" data-page="mistakes">错题</a>
+          <a href="profile.html" data-page="profile">我的</a>
+        </nav>
+        <a class="cta-link" href="study.html">去背单词</a>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="hero fade-in">
+        <h1>定制你的俄语学习节奏</h1>
+        <p>
+          根据自身时间安排设置每日目标，学习页会引用这些设置来计算预计完成时间，帮你更好地规划每天的任务。
+        </p>
+      </section>
+
+      <section class="section-title fade-in">
+        <h2>我的学习目标</h2>
+        <p>建议从轻量任务开始，养成习惯后再逐步提升。</p>
+      </section>
+
+      <section class="card fade-in">
+        <div class="toggles">
+          <label class="toggle">
+            <span>每天新学单词数量</span>
+            <input id="dailyNew" type="number" min="1" max="200" step="1" />
+          </label>
+          <label class="toggle">
+            <span>每天复习单词数量</span>
+            <input id="dailyReview" type="number" min="0" max="300" step="1" />
+          </label>
+          <label class="toggle">
+            <span>复习周期（隔多少天回顾一轮）</span>
+            <input id="cycleDays" type="number" min="1" max="60" step="1" />
+          </label>
+        </div>
+        <div class="card-actions" style="margin-top:22px;">
+          <button class="btn-primary" type="button" id="savePreferences">保存设置</button>
+          <button class="btn-secondary" type="button" id="syncPreferences">刷新同步</button>
+        </div>
+        <p class="subtle-text" style="margin-top:12px;">上次同步：<span id="lastSync">尚未同步</span></p>
+      </section>
+
+      <section class="section-title fade-in">
+        <h2>计划概览</h2>
+        <p>系统会自动计算每天总任务量，帮助你掌握整体节奏。</p>
+      </section>
+
+      <section id="planSummary" class="stats-grid"></section>
+
+      <section class="section-title fade-in">
+        <h2>推荐任务</h2>
+        <p>
+          挑选 3 本词书作为当前重点，点击“去背单词”即可跳转到学习页对应区域。错题也会优先安排在这三本中。
+        </p>
+      </section>
+
+      <section id="recommendList" class="card-grid"></section>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <div>
+          <strong>林鹭俄语</strong>
+          <p class="subtle-text">© 2025 林鹭俄语 · 让俄语学习更容易。</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://mp.weixin.qq.com/s/J4_CNg9AZCIwPnyk2VGLYQ" target="_blank" rel="noopener noreferrer">官方公众号</a>
+          <a href="https://v.douyin.com/YleBclWDuhg/" target="_blank" rel="noopener noreferrer">官方抖音</a>
+          <a href="https://xhslink.com/m/6cTUMuTcujT" target="_blank" rel="noopener noreferrer">官方小红书</a>
+          <a href="#" class="contact-link">联系我们</a>
+        </div>
+        <div class="subtle-text">保持计划与执行同步，持续推进你的俄语进步。</div>
+      </div>
+    </footer>
+
+    <button class="back-to-top" aria-label="返回顶部">↑</button>
+
+    <div class="contact-modal" id="contactModal" aria-hidden="true">
+      <div class="contact-modal__card">
+        <button class="contact-modal__close" type="button">关闭</button>
+        <h3>林鹭俄语 · 学习小助手</h3>
+        <p class="subtle-text" style="margin-bottom:12px;">保存二维码至手机，再用微信扫一扫添加小助手好友。</p>
+        <img
+          class="contact-modal__qr"
+          src="assets/img/contact-wechat.svg"
+          alt="林鹭俄语微信小助手二维码"
+        />
+        <p class="contact-modal__hint">若二维码未显示，请将官方二维码覆盖为 <code>assets/img/contact-wechat.svg</code> 后刷新页面。</p>
+      </div>
+    </div>
+
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/profile.js"></script>
+  </body>
+</html>
+
