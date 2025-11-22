@@ -75,8 +75,8 @@ function writeStorage(key, value) {
 }
 
 // 内置词书文件名
-const BUILTIN_BOOK_FILE = '19821876113.xlsx';
-const BUILTIN_BOOK_ID = 'builtin-19821876113';
+const BUILTIN_BOOK_FILE = '«Первые шаги».xlsx';
+const BUILTIN_BOOK_ID = 'builtin-«Первые шаги»';
 
 // 尝试加载内置的xlsx词书
 async function loadBuiltinBook() {
@@ -96,12 +96,17 @@ async function loadBuiltinBook() {
   }
 
   try {
-    // 尝试从assets/data/目录加载文件
-    const response = await fetch(`assets/data/${BUILTIN_BOOK_FILE}`);
+    // 尝试从assets/data/目录加载文件（对文件名进行URL编码以处理特殊字符）
+    const encodedFileName = encodeURIComponent(BUILTIN_BOOK_FILE);
+    const fileUrl = `assets/data/${encodedFileName}`;
+    console.log(`尝试加载内置词书: ${fileUrl}`);
+    const response = await fetch(fileUrl);
     if (!response.ok) {
-      console.warn(`内置词书文件 ${BUILTIN_BOOK_FILE} 未找到，跳过加载`);
+      console.warn(`内置词书文件 ${BUILTIN_BOOK_FILE} 未找到 (HTTP ${response.status})，跳过加载`);
+      console.warn(`文件路径: ${fileUrl}`);
       return null;
     }
+    console.log(`成功获取内置词书文件，开始解析...`);
 
     const arrayBuffer = await response.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
@@ -151,6 +156,8 @@ async function loadBuiltinBook() {
       return null;
     }
 
+    console.log(`成功解析内置词书，共 ${words.length} 个单词`);
+
     // 创建词书对象
     const bookName = BUILTIN_BOOK_FILE.replace(/\.xlsx$/i, '');
     const builtinBook = {
@@ -164,6 +171,7 @@ async function loadBuiltinBook() {
       isBuiltin: true
     };
 
+    console.log(`内置词书对象创建成功:`, builtinBook.title, `(${builtinBook.totalWords} 词)`);
     return builtinBook;
   } catch (error) {
     console.warn(`加载内置词书失败: ${error.message}`);
@@ -309,7 +317,8 @@ window.RuswordData = {
   recordWrongWord,
   clearWrongWords,
   removeWrongWordsByBook,
-  computeStudyPlanStatus
+  computeStudyPlanStatus,
+  loadBuiltinBook
 };
 
 function applyBookMetadata(book) {

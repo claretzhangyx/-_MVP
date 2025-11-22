@@ -35,6 +35,57 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBookCards();
   });
 
+  // 主动尝试加载内置词书（确保XLSX库已加载）
+  function tryLoadBuiltinBook(attempt = 0) {
+    const maxAttempts = 50; // 最多尝试5秒 (50 * 100ms)
+    
+    if (!window.XLSX || !window.XLSX.read) {
+      // 如果XLSX库还没加载，等待一下再试
+      if (attempt < maxAttempts) {
+        setTimeout(() => tryLoadBuiltinBook(attempt + 1), 100);
+      } else {
+        console.warn('XLSX库加载超时，无法加载内置词书');
+      }
+      return;
+    }
+
+    console.log('XLSX库已加载，开始检查内置词书...');
+
+    // 检查是否已有内置词书
+    const books = window.RuswordData.getBooks();
+    const hasBuiltin = books.some((book) => book.id === 'builtin-«Первые шаги»');
+    
+    if (hasBuiltin) {
+      console.log('内置词书已存在，跳过加载');
+      return;
+    }
+    
+    console.log('内置词书不存在，开始加载...');
+    
+    // 调用data.js中的loadBuiltinBook函数
+    if (window.RuswordData.loadBuiltinBook) {
+      window.RuswordData.loadBuiltinBook().then((builtinBook) => {
+        if (builtinBook) {
+          console.log('内置词书加载成功，添加到词库...');
+          window.RuswordData.addBook(builtinBook);
+          state.books = window.RuswordData.getBooks();
+          renderBookCards();
+          showStatus(`内置词书《${builtinBook.title}》已加载，共 ${builtinBook.totalWords} 个单词。`);
+        } else {
+          console.warn('内置词书加载返回null，可能文件不存在或格式不正确');
+        }
+      }).catch((error) => {
+        console.error('加载内置词书失败:', error);
+        showStatus(`加载内置词书失败: ${error.message}`);
+      });
+    } else {
+      console.warn('window.RuswordData.loadBuiltinBook 函数不存在');
+    }
+  }
+
+  // 延迟一点再尝试加载，确保所有脚本都已加载
+  setTimeout(tryLoadBuiltinBook, 200);
+
   function init() {
     state.books = window.RuswordData.getBooks();
     renderBookCards();
