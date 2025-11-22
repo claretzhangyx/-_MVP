@@ -66,11 +66,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.RuswordData.loadBuiltinBook) {
       window.RuswordData.loadBuiltinBook().then((builtinBook) => {
         if (builtinBook) {
-          console.log('内置词书加载成功，添加到词库...');
-          window.RuswordData.addBook(builtinBook);
-          state.books = window.RuswordData.getBooks();
-          renderBookCards();
-          showStatus(`内置词书《${builtinBook.title}》已加载，共 ${builtinBook.totalWords} 个单词。`);
+          // 再次检查是否已存在（防止并发加载）
+          const currentBooks = window.RuswordData.getBooks();
+          const stillMissing = !currentBooks.some((book) => book.id === 'builtin-«Первые шаги»');
+          
+          if (stillMissing) {
+            console.log('内置词书加载成功，添加到词库...');
+            window.RuswordData.addBook(builtinBook);
+            state.books = window.RuswordData.getBooks();
+            renderBookCards();
+            showStatus(`内置词书《${builtinBook.title}》已加载，共 ${builtinBook.totalWords} 个单词。`);
+          } else {
+            console.log('内置词书已在加载过程中被添加，跳过重复添加');
+            state.books = window.RuswordData.getBooks();
+            renderBookCards();
+          }
         } else {
           console.warn('内置词书加载返回null，可能文件不存在或格式不正确');
         }
@@ -87,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(tryLoadBuiltinBook, 200);
 
   function init() {
+    // 先清理重复的内置词书
+    window.RuswordData.cleanupDuplicateBuiltinBooks();
     state.books = window.RuswordData.getBooks();
     renderBookCards();
     setupUploader();

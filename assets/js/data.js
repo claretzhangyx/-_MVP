@@ -78,16 +78,30 @@ function writeStorage(key, value) {
 const BUILTIN_BOOK_FILE = '«Первые шаги».xlsx';
 const BUILTIN_BOOK_ID = 'builtin-«Первые шаги»';
 
+// 防止重复加载的标志
+let builtinBookLoading = false;
+let builtinBookLoaded = false;
+
 // 尝试加载内置的xlsx词书
 async function loadBuiltinBook() {
+  // 如果正在加载或已加载，直接返回
+  if (builtinBookLoading) {
+    console.log('内置词书正在加载中，跳过重复请求');
+    return null;
+  }
+
   // 检查是否已经存在这个词书
   const existing = readStorage(STORAGE_KEYS.books, null);
   if (existing && Array.isArray(existing)) {
     const hasBuiltin = existing.some((book) => book.id === BUILTIN_BOOK_ID);
     if (hasBuiltin) {
+      builtinBookLoaded = true;
       return null; // 已经存在，不需要重新加载
     }
   }
+
+  // 设置加载标志
+  builtinBookLoading = true;
 
   // 检查XLSX库是否可用
   if (!window.XLSX || !window.XLSX.read) {
@@ -172,10 +186,14 @@ async function loadBuiltinBook() {
     };
 
     console.log(`内置词书对象创建成功:`, builtinBook.title, `(${builtinBook.totalWords} 词)`);
+    builtinBookLoaded = true;
     return builtinBook;
   } catch (error) {
     console.warn(`加载内置词书失败: ${error.message}`);
     return null;
+  } finally {
+    // 重置加载标志
+    builtinBookLoading = false;
   }
 }
 
@@ -193,30 +211,8 @@ function ensureBookData() {
   if (!existing || !Array.isArray(existing) || existing.length === 0) {
     const normalized = defaultBookPool.map(applyBookMetadata);
     writeStorage(STORAGE_KEYS.books, normalized);
-    // 异步加载内置词书（不阻塞初始化）
-    loadBuiltinBook().then((builtinBook) => {
-      if (builtinBook) {
-        const currentBooks = getBooks();
-        const hasBuiltin = currentBooks.some((book) => book.id === BUILTIN_BOOK_ID);
-        if (!hasBuiltin) {
-          addBook(builtinBook);
-          // 触发自定义事件，通知页面刷新
-          window.dispatchEvent(new CustomEvent('builtinBookLoaded'));
-        }
-      }
-    });
+    // 不在 ensureBookData 中自动加载内置词书，由 study.js 主动触发
     return normalized;
-  } else {
-    // 即使已有数据，也检查是否需要加载内置词书
-    const hasBuiltin = existing.some((book) => book.id === BUILTIN_BOOK_ID);
-    if (!hasBuiltin) {
-      loadBuiltinBook().then((builtinBook) => {
-        if (builtinBook) {
-          addBook(builtinBook);
-          window.dispatchEvent(new CustomEvent('builtinBookLoaded'));
-        }
-      });
-    }
   }
   return existing;
 }
@@ -227,6 +223,12 @@ function getBooks() {
 
 function addBook(book) {
   const books = getBooks();
+  // 检查是否已存在相同ID的词书
+  const existingIndex = books.findIndex((b) => b.id === book.id);
+  if (existingIndex >= 0) {
+    console.warn(`词书 ${book.id} 已存在，跳过添加`);
+    return books;
+  }
   books.push(applyBookMetadata(book));
   writeStorage(STORAGE_KEYS.books, books);
   return books;
@@ -294,6 +296,33 @@ function removeWrongWordsByBook(bookId) {
   writeStorage(STORAGE_KEYS.wrongWords, filtered);
 }
 
+// 清理重复的内置词书（保留第一个，删除其他）
+function cleanupDuplicateBuiltinBooks() {
+  const books = getBooks();
+  const builtinBooks = books.filter((book) => book.id === BUILTIN_BOOK_ID);
+  
+  if (builtinBooks.length <= 1) {
+    return books; // 没有重复
+  }
+  
+  // 保留第一个，删除其他的
+  let keepFirst = true;
+  const cleanedBooks = books.filter((book) => {
+    if (book.id === BUILTIN_BOOK_ID) {
+      if (keepFirst) {
+        keepFirst = false;
+        return true; // 保留第一个
+      }
+      return false; // 删除重复的
+    }
+    return true;
+  });
+  
+  writeStorage(STORAGE_KEYS.books, cleanedBooks);
+  console.log(`清理了 ${builtinBooks.length - 1} 个重复的内置词书`);
+  return cleanedBooks;
+}
+
 function computeStudyPlanStatus(totalWords) {
   const preferences = getPreferences();
   const wordsPerDay = preferences.dailyNew + preferences.dailyReview;
@@ -318,7 +347,8 @@ window.RuswordData = {
   clearWrongWords,
   removeWrongWordsByBook,
   computeStudyPlanStatus,
-  loadBuiltinBook
+  loadBuiltinBook,
+  cleanupDuplicateBuiltinBooks
 };
 
 function applyBookMetadata(book) {
