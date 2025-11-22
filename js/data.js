@@ -74,12 +74,141 @@ function writeStorage(key, value) {
   }
 }
 
+// 内置词书文件名
+const BUILTIN_BOOK_FILE = '19821876113.xlsx';
+const BUILTIN_BOOK_ID = 'builtin-19821876113';
+
+// 尝试加载内置的xlsx词书
+async function loadBuiltinBook() {
+  // 检查是否已经存在这个词书
+  const existing = readStorage(STORAGE_KEYS.books, null);
+  if (existing && Array.isArray(existing)) {
+    const hasBuiltin = existing.some((book) => book.id === BUILTIN_BOOK_ID);
+    if (hasBuiltin) {
+      return null; // 已经存在，不需要重新加载
+    }
+  }
+
+  // 检查XLSX库是否可用
+  if (!window.XLSX || !window.XLSX.read) {
+    console.warn('XLSX库未加载，无法加载内置词书');
+    return null;
+  }
+
+  try {
+    // 尝试从assets/data/目录加载文件
+    const response = await fetch(`assets/data/${BUILTIN_BOOK_FILE}`);
+    if (!response.ok) {
+      console.warn(`内置词书文件 ${BUILTIN_BOOK_FILE} 未找到，跳过加载`);
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+    const workbook = window.XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    const words = rows
+      .map((row, index) => {
+        const ru =
+          row['俄语'] ||
+          row['俄语单词'] ||
+          row['Russian'] ||
+          row['ru'] ||
+          row['RU'] ||
+          '';
+        const zh =
+          row['中文'] ||
+          row['中文释义'] ||
+          row['Chinese'] ||
+          row['zh'] ||
+          row['ZH'] ||
+          '';
+        const hint = row['提示'] || row['Hint'] || row['备注'] || '';
+        const unit =
+          row['单元'] ||
+          row['Unit'] ||
+          row['unit'] ||
+          row['章节'] ||
+          row['章节/单元'] ||
+          '';
+        if (!ru || !zh) {
+          return null;
+        }
+        return {
+          id: `builtin-word-${index}`,
+          ru: String(ru).trim(),
+          zh: String(zh).trim(),
+          hint: String(hint).trim(),
+          unit: String(unit).trim()
+        };
+      })
+      .filter(Boolean);
+
+    if (!words.length) {
+      console.warn(`内置词书 ${BUILTIN_BOOK_FILE} 解析后没有有效单词`);
+      return null;
+    }
+
+    // 创建词书对象
+    const bookName = BUILTIN_BOOK_FILE.replace(/\.xlsx$/i, '');
+    const builtinBook = {
+      id: BUILTIN_BOOK_ID,
+      title: bookName,
+      description: '内置词书，自动加载。',
+      cover: buildCoverSvgForBuiltin(bookName),
+      totalWords: words.length,
+      tags: ['内置', '自动导入'],
+      words: words,
+      isBuiltin: true
+    };
+
+    return builtinBook;
+  } catch (error) {
+    console.warn(`加载内置词书失败: ${error.message}`);
+    return null;
+  }
+}
+
+// 为内置词书生成封面
+function buildCoverSvgForBuiltin(name) {
+  const palette = ['#6b46c1', '#9333ea', '#a855f7'];
+  const pick = palette[Math.floor(Math.random() * palette.length)];
+  const displayText = name.replace(/\s+/g, '').slice(0, 6) || 'RUS';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480"><defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/><stop offset="100%" stop-color="${pick}"/></linearGradient></defs><rect width="360" height="480" rx="28" fill="url(#grad)"/><text x="50%" y="55%" font-size="42" fill="#1f2a44" font-family="Noto Sans SC, sans-serif" text-anchor="middle">${displayText}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function ensureBookData() {
   const existing = readStorage(STORAGE_KEYS.books, null);
   if (!existing || !Array.isArray(existing) || existing.length === 0) {
     const normalized = defaultBookPool.map(applyBookMetadata);
     writeStorage(STORAGE_KEYS.books, normalized);
+    // 异步加载内置词书（不阻塞初始化）
+    loadBuiltinBook().then((builtinBook) => {
+      if (builtinBook) {
+        const currentBooks = getBooks();
+        const hasBuiltin = currentBooks.some((book) => book.id === BUILTIN_BOOK_ID);
+        if (!hasBuiltin) {
+          addBook(builtinBook);
+          // 触发自定义事件，通知页面刷新
+          window.dispatchEvent(new CustomEvent('builtinBookLoaded'));
+        }
+      }
+    });
     return normalized;
+  } else {
+    // 即使已有数据，也检查是否需要加载内置词书
+    const hasBuiltin = existing.some((book) => book.id === BUILTIN_BOOK_ID);
+    if (!hasBuiltin) {
+      loadBuiltinBook().then((builtinBook) => {
+        if (builtinBook) {
+          addBook(builtinBook);
+          window.dispatchEvent(new CustomEvent('builtinBookLoaded'));
+        }
+      });
+    }
   }
   return existing;
 }

@@ -29,6 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   init();
 
+  // 监听内置词书加载完成事件
+  window.addEventListener('builtinBookLoaded', () => {
+    state.books = window.RuswordData.getBooks();
+    renderBookCards();
+  });
+
   function init() {
     state.books = window.RuswordData.getBooks();
     renderBookCards();
