@@ -96,6 +96,17 @@ header {
   font-size: 1.25rem;
   color: var(--accent-primary);
   letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.logo-img {
+  height: 2.5rem;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .nav-links {
