@@ -103,8 +103,10 @@ header {
 }
 
 .logo-img {
-  height: 2.5rem;
+  height: 2rem;
+  max-height: 2rem;
   width: auto;
+  max-width: 80px;
   display: block;
   object-fit: contain;
 }
